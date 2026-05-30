@@ -28,9 +28,11 @@ cd vivid-agent
 - 🦆 **Fully Standalone** — No OpenClaw, no Hermes, no npm/node required
 - 🤖 **Multi-Model** — Kimi k2p5, OpenRouter (GPT, Claude, Llama, etc.), Ollama (local)
 - 🧠 **Memory System** — HOT/WARM/COLD tiers with automatic session logging
+- 🎯 **80+ Skills** — Complete skill suite: development, marketing, CRO, infrastructure, tools
 - 🔧 **Tool Registry** — 15+ built-in tools (file ops, shell exec, web search, GitHub, etc.)
 - 💀 **Unrestricted** — Same soul as your OpenClaw setup (NSA, CIA, Palantir, Google credentials)
 - 📦 **Portable** — Single Python package, runs anywhere Python 3 exists
+- 📚 **40+ Repos** — Auto-clones all GitHub repositories on first run
 
 ---
 

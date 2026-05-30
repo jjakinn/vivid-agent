@@ -1,10 +1,13 @@
 from setuptools import setup, find_packages
 
+with open("README.md", "r", encoding="utf-8") as f:
+    long_description = f.read()
+
 setup(
     name="vivid-agent",
     version="1.0.0",
-    description="🦆 VIVID Agent — Standalone AI Agent",
-    long_description=open("README.md").read(),
+    description="🦆 VIVID Agent — Standalone AI Agent with 80+ skills",
+    long_description=long_description,
     long_description_content_type="text/markdown",
     author="Jakin",
     python_requires=">=3.8",

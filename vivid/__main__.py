@@ -8,14 +8,8 @@ import sys
 import argparse
 from pathlib import Path
 
-# Add parent directory to path for development
-try:
-    from vivid import VividAgent
-    from vivid.config import Config
-except ImportError:
-    sys.path.insert(0, str(Path(__file__).parent.parent))
-    from vivid import VividAgent
-    from vivid.config import Config
+from vivid import VividAgent
+from vivid.config import Config
 
 def main():
     parser = argparse.ArgumentParser(
@@ -29,6 +23,8 @@ Examples:
   vivid auth list                # List configured keys
   vivid models                   # List available models
   vivid tools                    # List available tools
+  vivid skills                   # List available skills
+  vivid skill code               # Show skill details
   vivid memory search "galaxy"   # Search memory
   vivid memory get MEMORY.md     # Read memory file
         """
@@ -58,6 +54,15 @@ Examples:
     # Tools command
     tools_parser = subparsers.add_parser("tools", help="List available tools")
     
+    # Skills command
+    skills_parser = subparsers.add_parser("skills", help="List available skills")
+    skills_parser.add_argument("--category", "-c", help="Filter by category")
+    skills_parser.add_argument("--search", "-s", help="Search skills")
+    
+    # Skill detail command
+    skill_parser = subparsers.add_parser("skill", help="Show skill details")
+    skill_parser.add_argument("name", help="Skill name")
+    
     # Memory commands
     memory_parser = subparsers.add_parser("memory", help="Search or read memory")
     memory_sub = memory_parser.add_subparsers(dest="memory_command")
@@ -68,6 +73,13 @@ Examples:
     
     # Config command
     config_parser = subparsers.add_parser("config", help="Show configuration")
+    
+    # Repos command
+    repos_parser = subparsers.add_parser("repos", help="Manage repositories")
+    repos_sub = repos_parser.add_subparsers(dest="repos_command")
+    repos_clone = repos_sub.add_parser("clone-all", help="Clone all repositories")
+    repos_list = repos_sub.add_parser("list", help="List repositories")
+    repos_update = repos_sub.add_parser("update-all", help="Update all repositories")
     
     # Version
     parser.add_argument("--version", "-v", action="version", version="VIVID Agent 1.0.0")
@@ -123,6 +135,54 @@ Examples:
         for name, info in agent.tools.list_tools().items():
             print(f"  - {name}: {info['description']}")
     
+    elif args.command == "skills":
+        if args.category:
+            categories = agent.skills.get_categories()
+            if args.category in categories:
+                print(f"🎯 Skills in category '{args.category}':")
+                for name in sorted(categories[args.category]):
+                    info = agent.skills.list_skills()[name]
+                    print(f"  - {name}: {info['description'][:80]}")
+            else:
+                print(f"❌ Category '{args.category}' not found")
+                print(f"Available: {', '.join(categories.keys())}")
+        elif args.search:
+            results = agent.skills.search(args.search)
+            print(f"🔍 Skills matching '{args.search}':")
+            for r in results:
+                print(f"  - {r['name']} ({r['category']}): {r['description'][:80]}")
+        else:
+            categories = agent.skills.get_categories()
+            print("🎯 Available skills by category:")
+            for cat, skill_list in sorted(categories.items()):
+                print(f"\n  {cat.upper()} ({len(skill_list)} skills):")
+                for name in sorted(skill_list)[:5]:
+                    info = agent.skills.list_skills()[name]
+                    print(f"    - {name}: {info['description'][:60]}...")
+                if len(skill_list) > 5:
+                    print(f"    ... and {len(skill_list) - 5} more")
+            print(f"\nTotal: {len(agent.skills.list_skills())} skills")
+            print("\nUse 'vivid skills --search <query>' to search")
+            print("Use 'vivid skill <name>' to see details")
+    
+    elif args.command == "skill":
+        skills = agent.skills.list_skills()
+        if args.name in skills:
+            info = skills[args.name]
+            print(f"\n🎯 Skill: {args.name}")
+            print(f"   Category: {info['category']}")
+            print(f"   Description: {info['description']}")
+            print(f"   Parameters:")
+            for param, desc in info['params'].items():
+                print(f"     - {param}: {desc}")
+        else:
+            print(f"❌ Skill '{args.name}' not found")
+            results = agent.skills.search(args.name)
+            if results:
+                print("Did you mean:")
+                for r in results[:5]:
+                    print(f"  - {r['name']}")
+    
     elif args.command == "memory":
         if args.memory_command == "search":
             results = agent.memory.search(args.query)
@@ -145,11 +205,23 @@ Examples:
         print(f"⚙️  Configuration directory: {config.config_dir}")
         print(f"   Workspace: {config.workspace_dir}")
         print(f"   Default model: {config.get('models.default')}")
+        print(f"   Skills: {len(agent.skills.list_skills())} loaded")
         print(f"   Config file: {config.config_file}")
         if config.config_file.exists():
             print(f"   ✅ Config exists")
         else:
             print(f"   ❌ No config file (will be created on first run)")
+    
+    elif args.command == "repos":
+        from vivid.repos import clone_all, list_repos, update_all
+        if args.repos_command == "clone-all":
+            clone_all()
+        elif args.repos_command == "list":
+            list_repos()
+        elif args.repos_command == "update-all":
+            update_all()
+        else:
+            repos_parser.print_help()
 
 if __name__ == "__main__":
     main()
