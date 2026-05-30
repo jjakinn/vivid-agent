@@ -45,8 +45,20 @@ Examples:
     auth_parser = subparsers.add_parser("auth", help="Manage API keys")
     auth_sub = auth_parser.add_subparsers(dest="auth_command")
     auth_add = auth_sub.add_parser("add", help="Add an API key")
-    auth_add.add_argument("provider", choices=["kimi", "openrouter", "brave", "ollama"], help="Provider name")
+    auth_add.add_argument("provider", choices=["kimi", "openrouter", "brave", "ollama", "openai", "anthropic", "groq", "deepseek", "together", "gemini", "cohere", "mistral", "perplexity", "fireworks", "hyperbolic", "custom"], help="Provider name")
     auth_list = auth_sub.add_parser("list", help="List configured keys")
+    
+    # Provider commands
+    provider_parser = subparsers.add_parser("provider", help="Manage model providers")
+    provider_sub = provider_parser.add_subparsers(dest="provider_command")
+    provider_add = provider_sub.add_parser("add", help="Add a custom provider")
+    provider_add.add_argument("name", help="Provider name")
+    provider_add.add_argument("base_url", help="Base API URL")
+    provider_add.add_argument("format", choices=["openai", "anthropic-messages", "ollama", "google-generative", "cohere"], help="API format")
+    provider_add.add_argument("--env", help="Environment variable name for API key")
+    provider_list = provider_sub.add_parser("list", help="List all providers")
+    provider_test = provider_sub.add_parser("test", help="Test a provider")
+    provider_test.add_argument("name", help="Provider name")
     
     # Models command
     models_parser = subparsers.add_parser("models", help="List available models")
@@ -100,8 +112,8 @@ Examples:
         agent.run_command(args.prompt, model=args.model)
     
     elif args.command == "auth":
+        import getpass
         if args.auth_command == "add":
-            import getpass
             provider_map = {
                 "kimi": "kimi-coding",
                 "openrouter": "openrouter",
@@ -124,6 +136,38 @@ Examples:
             print(f"  brave: {'✅ Set' if brave_key else '❌ Not set'}")
         else:
             auth_parser.print_help()
+    
+    elif args.command == "provider":
+        import getpass
+        if args.provider_command == "add":
+            api_key = getpass.getpass(f"Enter API key for {args.name} (or leave empty if no key needed): ")
+            agent.models.add_provider(
+                name=args.name,
+                base_url=args.base_url,
+                api_format=args.format,
+                api_key=api_key if api_key else None,
+                api_key_env=args.env
+            )
+            print(f"✅ Provider '{args.name}' added. Use it with: --model {args.name}/your-model-name")
+        elif args.provider_command == "list":
+            providers = agent.models.list_providers()
+            print("📡 Available providers:")
+            for name, info in providers.items():
+                status = "✅" if info["configured"] else "❌"
+                models = f"({info['models_count']} static models)" if info["models_count"] > 0 else "(dynamic)"
+                env = f"env: {info['env_var']}" if info.get("env_var") else "no key needed"
+                print(f"  {status} {name:20} {info['format']:20} {models:25} {env}")
+            print("\n💡 Add custom provider: vivid provider add <name> <base_url> <format>")
+        elif args.provider_command == "test":
+            result = agent.models.test_provider(args.name)
+            print(f"📡 Provider '{args.name}':")
+            print(f"   Status: {result['status']}")
+            if "message" in result:
+                print(f"   Message: {result['message']}")
+            if "models_available" in result:
+                print(f"   Models: {result['models_available']}")
+        else:
+            provider_parser.print_help()
     
     elif args.command == "models":
         print("📊 Available models:")
